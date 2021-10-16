@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "dgSpecHash": "YI6r18AptgIGZdNZ6Qq8pAzHtV0yNGfmXsW55uhwWYM3PEjwwWi37LNxhbiV4eQLWI5/YubJLsxBJvilQTAb0w==",
+  "success": true,
+  "projectFilePath": "E:\\Vstudio_Projects\\OpenTKV3\\OpenTKV3\\OpenTKV3.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\gerso\\.nuget\\packages\\microsoft.netcore.platforms\\3.1.0\\microsoft.netcore.platforms.3.1.0.nupkg.sha512",
+    "C:\\Users\\gerso\\.nuget\\packages\\microsoft.win32.systemevents\\4.7.0\\microsoft.win32.systemevents.4.7.0.nupkg.sha512",
+    "C:\\Users\\gerso\\.nuget\\packages\\opentk\\3.3.1\\opentk.3.3.1.nupkg.sha512",
+    "C:\\Users\\gerso\\.nuget\\packages\\system.drawing.common\\4.5.2\\system.drawing.common.4.5.2.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "El paquete \"OpenTK 3.3.1\" se restauró con \".NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8\" en lugar de la plataforma de destino del proyecto \"net5.0\". Puede que el paquete no sea totalmente compatible con el proyecto.",
+      "libraryId": "OpenTK",
+      "targetGraphs": [
+        "net5.0"
+      ]
+    }
+  ]
+}
