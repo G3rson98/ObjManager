@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Input;
 
 namespace OpenTKV3
 {
@@ -13,16 +14,16 @@ namespace OpenTKV3
     {
         string path = @"E:\Vstudio_Projects\OpenTKV3\OpenTKV3\";
 
-        int pgmID;
-        int vsID;
-        int fsID;
-        int attribute_vcol;
-        int attribute_vpos;
-        int uniform_mview;
 
-        int vbo_position;
-        int vbo_color;
-        int vbo_mview;
+        Camera cam = new Camera();
+
+        Dictionary<string, ShaderProgram> shaders = new Dictionary<string, ShaderProgram>();
+        string activeShader = "default";
+
+
+        Vector2[] texcoorddata;
+
+
         int ibo_elements;
 
         Vector3[] vertdata;
@@ -35,42 +36,11 @@ namespace OpenTKV3
 
         void initProgram()
         {
-            pgmID = GL.CreateProgram();
-
-            loadShader("vs.glsl", ShaderType.VertexShader, pgmID, out vsID);
-            loadShader("fs.glsl", ShaderType.FragmentShader, pgmID, out fsID);
-            GL.LinkProgram(pgmID);
-            Console.WriteLine(GL.GetProgramInfoLog(pgmID));
-
-
-            attribute_vpos = GL.GetAttribLocation(pgmID, "vPosition");
-            attribute_vcol = GL.GetAttribLocation(pgmID, "vColor");
-            uniform_mview = GL.GetUniformLocation(pgmID, "modelview");
-
-            if (attribute_vpos == -1 || attribute_vcol == -1 || uniform_mview == -1)
-            {
-                Console.WriteLine("Error binding attributes");
-            }
             GL.GenBuffers(1, out ibo_elements);
+            shaders.Add("default", new ShaderProgram(path+"vs.glsl", path+"fs.glsl", true));
+            ObjVolume obj1 = ObjVolume.LoadFromFile();
+            objects.Add(obj1);
 
-            GL.GenBuffers(1, out vbo_position);
-            GL.GenBuffers(1, out vbo_color);
-            GL.GenBuffers(1, out vbo_mview);
-
-            objects.Add(new Sierpinski());
-            objects.Add(new Sierpinski());
-
-
-        }
-        void loadShader(String filename, ShaderType type, int program, out int address){
-            address = GL.CreateShader(type);
-            using (StreamReader sr = new StreamReader($"{path}{filename}"))
-            {
-                GL.ShaderSource(address, sr.ReadToEnd());
-            }
-            GL.CompileShader(address);
-            GL.AttachShader(program, address);
-            Console.WriteLine(GL.GetShaderInfoLog(address));
         }
 
         protected override void OnLoad(EventArgs e)
@@ -82,6 +52,7 @@ namespace OpenTKV3
             GL.ClearColor(Color.CornflowerBlue);
             GL.PointSize(5f);
         }
+
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             base.OnRenderFrame(e);
@@ -89,23 +60,19 @@ namespace OpenTKV3
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.Enable(EnableCap.DepthTest);
 
-
-            GL.EnableVertexAttribArray(attribute_vpos);
-            GL.EnableVertexAttribArray(attribute_vcol);
+            shaders[activeShader].EnableVertexAttribArrays();
 
 
             int indiceat = 0;
 
             foreach (Volume v in objects)
             {
-                GL.UniformMatrix4(uniform_mview, false, ref v.ModelViewProjectionMatrix);
+                GL.UniformMatrix4(shaders[activeShader].GetUniform("modelview"), false, ref v.ModelViewProjectionMatrix);
                 GL.DrawElements(BeginMode.Triangles, v.IndiceCount, DrawElementsType.UnsignedInt, indiceat * sizeof(uint));
                 indiceat += v.IndiceCount;
             }
 
-
-            GL.DisableVertexAttribArray(attribute_vpos);
-            GL.DisableVertexAttribArray(attribute_vcol);
+            shaders[activeShader].DisableVertexAttribArrays();
 
 
             GL.Flush();
@@ -123,13 +90,9 @@ namespace OpenTKV3
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadMatrix(ref projection);
 
-
             Matrix4 modelview = Matrix4.LookAt(Vector3.Zero, Vector3.UnitZ, Vector3.UnitY);
             GL.MatrixMode(MatrixMode.Modelview);
             GL.LoadMatrix(ref modelview);
-
-            
-
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
@@ -138,7 +101,6 @@ namespace OpenTKV3
             List<Vector3> verts = new List<Vector3>();
             List<int> inds = new List<int>();
             List<Vector3> colors = new List<Vector3>();
-
 
             int vertcount = 0;
 
@@ -154,26 +116,25 @@ namespace OpenTKV3
             indicedata = inds.ToArray();
             coldata = colors.ToArray();
 
-            //time += (float)e.Time;
+            //time += 0.005f;
             base.OnUpdateFrame(e);
 
-            GL.BindBuffer(BufferTarget.ArrayBuffer, vbo_position);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, shaders[activeShader].GetBuffer("vPosition"));
+
             GL.BufferData<Vector3>(BufferTarget.ArrayBuffer, (IntPtr)(vertdata.Length * Vector3.SizeInBytes), vertdata, BufferUsageHint.StaticDraw);
-            GL.VertexAttribPointer(attribute_vpos, 3, VertexAttribPointerType.Float, false, 0, 0);
+            GL.VertexAttribPointer(shaders[activeShader].GetAttribute("vPosition"), 3, VertexAttribPointerType.Float, false, 0, 0);
 
-            GL.BindBuffer(BufferTarget.ArrayBuffer, vbo_color);
-            GL.BufferData<Vector3>(BufferTarget.ArrayBuffer, (IntPtr)(coldata.Length * Vector3.SizeInBytes), coldata, BufferUsageHint.StaticDraw);
-            GL.VertexAttribPointer(attribute_vcol, 3, VertexAttribPointerType.Float, true, 0, 0);
+            if (shaders[activeShader].GetAttribute("vColor") != -1)
+            {
+                GL.BindBuffer(BufferTarget.ArrayBuffer, shaders[activeShader].GetBuffer("vColor"));
+                GL.BufferData<Vector3>(BufferTarget.ArrayBuffer, (IntPtr)(coldata.Length * Vector3.SizeInBytes), coldata, BufferUsageHint.StaticDraw);
+                GL.VertexAttribPointer(shaders[activeShader].GetAttribute("vColor"), 3, VertexAttribPointerType.Float, true, 0, 0);
+            }
 
 
-            objects[0].Position = new Vector3(0.3f, -0.05f + (float)Math.Sin(time), -3.0f);
-            //objects[0].Rotation = new Vector3(0.55f * time, 0.25f * time, 0);
+            objects[0].Position = new Vector3(0.3f, -0.05f + (float)Math.Sin(time), -10.0f);
+            objects[0].Rotation = new Vector3(0f, 0f, 0f);
             objects[0].Scale = new Vector3(1f, 1f, 1f);
-
-            objects[1].Position = new Vector3(-1f, 0.5f + (float)Math.Cos(time), -2.0f);
-            objects[1].Rotation = new Vector3(-0.25f * time, -0.35f * time, 1);
-            //objects[1].Scale = new Vector3(0.35f, 0.35f, 0.35f);
-
 
             //Random rand = new Random();
 
@@ -189,21 +150,60 @@ namespace OpenTKV3
             foreach (Volume v in objects)
             {
                 v.CalculateModelMatrix();
-                v.ViewProjectionMatrix = Matrix4.CreatePerspectiveFieldOfView(1.3f, ClientSize.Width / (float)ClientSize.Height, 1.0f, 40.0f);
+                //v.ViewProjectionMatrix = Matrix4.CreatePerspectiveFieldOfView(1.3f, ClientSize.Width / (float)ClientSize.Height, 1.0f, 40.0f);
+                v.ViewProjectionMatrix = cam.GetViewMatrix() * Matrix4.CreatePerspectiveFieldOfView(1.3f, ClientSize.Width / (float)ClientSize.Height, 1.0f, 40.0f);
                 v.ModelViewProjectionMatrix = v.ModelMatrix * v.ViewProjectionMatrix;
             }
 
-            GL.UseProgram(pgmID);
-
+            GL.UseProgram(shaders[activeShader].ProgramID);
 
 
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
 
-
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, ibo_elements);
             GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(indicedata.Length * sizeof(int)), indicedata, BufferUsageHint.StaticDraw);
+            
+            
+            ProcessInput();
 
+        }
 
+        private void ProcessInput()
+        {
+
+            if (Keyboard.GetState().IsKeyDown(Key.W))
+            {
+                cam.Move(0f, 0.1f, 0f);
+            }
+
+            if (Keyboard.GetState().IsKeyDown(Key.S))
+            {
+                cam.Move(0f, -0.1f, 0f);
+            }
+
+            if (Keyboard.GetState().IsKeyDown(Key.A))
+            {
+                cam.Move(-0.1f, 0f, 0f);
+            }
+
+            if (Keyboard.GetState().IsKeyDown(Key.D))
+            {
+                cam.Move(0.1f, 0f, 0f);
+            }
+
+            if (Keyboard.GetState().IsKeyDown(Key.Q))
+            {
+                cam.Move(0f, 0f, 0.1f);
+            }
+
+            if (Keyboard.GetState().IsKeyDown(Key.E))
+            {
+                cam.Move(0f, 0f, -0.1f);
+            }
+            if (Keyboard.GetState().IsKeyDown(Key.Escape))
+            {
+                Exit();
+            }
         }
     }
 }

@@ -13,12 +13,14 @@ namespace OpenTKV3
         public Vector3 Rotation = Vector3.Zero;
         public Vector3 Scale = Vector3.One;
 
-        public int VertCount;
-        public int IndiceCount;
-        public int ColorDataCount;
         public Matrix4 ModelMatrix = Matrix4.Identity;
         public Matrix4 ViewProjectionMatrix = Matrix4.Identity;
         public Matrix4 ModelViewProjectionMatrix = Matrix4.Identity;
+
+
+        public virtual int VertCount { get; set; }
+        public virtual int IndiceCount { get; set; }
+        public virtual int ColorDataCount { get; set; }
 
         public abstract Vector3[] GetVerts();
         public abstract int[] GetIndices(int offset = 0);
